@@ -1,69 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:pomodoro/common/providers/app_state_provider.dart';
+import 'package:pomodoro/common/theme/app_colors.dart';
 import 'package:pomodoro/presentation/clock_view.dart';
 import 'package:pomodoro/presentation/pomodoro_view.dart';
+import 'package:pomodoro/presentation/widgets/app_drawer.dart';
 import 'package:provider/provider.dart';
 
-class MainPage extends StatefulWidget {
+class MainPage extends StatelessWidget {
   const MainPage({super.key});
 
   @override
-  State<MainPage> createState() => _MainPageState();
-}
-
-class _MainPageState extends State<MainPage> {
-  int currentPage = 0;
-  @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppStateProvider>();
-    final pageController = PageController(
-      initialPage: currentPage,
-    );
+
     return Scaffold(
-      drawer: Drawer(
-        child: Column(
-          children: [
-            SwitchListTile(
-              title: const Text('Dark mode'),
-              value: appState.isDark,
-              onChanged: (mode) {
-                appState.setThemeMode();
-              },
-            ),
-          ],
-        ),
-      ),
-      body: PageView(
-        controller: pageController,
-        children: const [
-          ClockView(),
-          PomodoroView(),
-        ],
+      drawer: const AppDrawer(),
+      body: [
+        const ClockView(),
+        const PomodoroView(),
+      ][appState.currentPage],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {},
+        child: const Icon(Icons.add),
       ),
       bottomNavigationBar: Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (currentPage == 2)
-            IconButton(
-              onPressed: () {
-                setState(() => currentPage = 1);
-                pageController.jumpToPage(0);
-              },
-              icon: const Icon(
-                Icons.watch_later_outlined,
-              ),
-            )
-          else
-            IconButton(
-              onPressed: () {
-                setState(() => currentPage = 2);
-                pageController.jumpToPage(1);
-              },
-              icon: const Icon(
-                Icons.timer_outlined,
-              ),
+          IconButton(
+            onPressed: () {
+              appState.jumpToPage(0);
+            },
+            icon: Icon(
+              Icons.watch_later_outlined,
+              color: appState.currentPage == 0 ? AppColors.accent : null,
             ),
+          ),
+          IconButton(
+            onPressed: () {
+              appState.jumpToPage(1);
+            },
+            icon: Icon(
+              Icons.timer_outlined,
+              color: appState.currentPage == 1 ? AppColors.accent : null,
+            ),
+          ),
           Builder(builder: (context) {
             return IconButton(
               onPressed: () {
