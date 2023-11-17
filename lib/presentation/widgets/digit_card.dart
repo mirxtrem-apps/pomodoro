@@ -1,9 +1,30 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 
 class DigitCard extends StatefulWidget {
-  const DigitCard({Key? key}) : super(key: key);
+  const DigitCard({
+    Key? key,
+    required this.onTime,
+    required this.timerDuration,
+    required this.limit,
+    required this.start,
+    this.color,
+    this.fontSize,
+    this.height,
+    this.width,
+  }) : super(key: key);
+
+  final Color? color;
+  final double? fontSize;
+  final double? height;
+  final double? width;
+
+  final int onTime;
+  final Duration timerDuration;
+  final int limit;
+  final int start;
 
   @override
   State<DigitCard> createState() => _DigitCardState();
@@ -14,12 +35,16 @@ class _DigitCardState extends State<DigitCard>
   late AnimationController _controller;
   late Animation _animation;
 
+  Timer? _timer;
+  late int _clockCount;
+
   @override
   void initState() {
+    _clockCount = widget.onTime;
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1000),
     );
     _animation =
         Tween<double>(end: -(pi), begin: -(pi * 2)).animate(_controller);
@@ -28,50 +53,146 @@ class _DigitCardState extends State<DigitCard>
       setState(() {});
     });
 
-    _controller.repeat();
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
+      alignment: Alignment.topCenter,
       children: [
         Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              height: 99,
-              width: 200,
-              color: Colors.red,
-              child: const Text('12'),
+            _buildUpperCard(
+              text: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    top: 7,
+                    child: _clockTimerWidget(),
+                  ),
+                ],
+              ),
             ),
             const Divider(
               height: 2,
               color: Colors.transparent,
             ),
-            Container(
-              height: 99,
-              width: 200,
-              color: Colors.blue,
-              child: const Text('12'),
+            _buildLowerCard(
+              text: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    top: -95,
+                    child: _clockTimerWidget(),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
         AnimatedBuilder(
-            animation: _animation,
-            child: Container(
-              height: 99,
-              width: 200,
-              color: Colors.yellow,
-              child: const Text('12'),
-            ),
-            builder: (context, child) {
-              return Transform(
-                  alignment: Alignment.bottomCenter,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.002)
-                    ..rotateX(_animation.value),
-                  child: child);
-            }),
+          animation: _animation,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildUpperCard(
+                text: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    _animation.value < -4.71
+                        ? Positioned(
+                            top: 7,
+                            child: _clockTimerWidget(),
+                          )
+                        : Positioned(
+                            top: 195,
+                            child: Transform(
+                                transform: Matrix4.rotationX(pi),
+                                child: _clockTimerWidget()),
+                          )
+                  ],
+                ),
+              ),
+              const Divider(
+                height: 1,
+                color: Colors.transparent,
+              ),
+            ],
+          ),
+          builder: (context, child) {
+            return Transform(
+              alignment: Alignment.bottomCenter,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateX(_animation.value),
+              child: child,
+            );
+          },
+        ),
       ],
     );
   }
+
+  _buildUpperCard({required Widget text}) {
+    return Container(
+      height: widget.height ?? 100,
+      width: widget.width ?? 200,
+      decoration: BoxDecoration(
+        color: widget.color ?? Theme.of(context).colorScheme.primary,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(12),
+        ),
+      ),
+      child: text,
+    );
+  }
+
+  _buildLowerCard({required Widget text}) {
+    return Container(
+      height: widget.height ?? 100,
+      width: widget.width ?? 200,
+      decoration: BoxDecoration(
+        color: widget.color ?? Theme.of(context).colorScheme.primary,
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(12),
+        ),
+      ),
+      child: text,
+    );
+  }
+
+  _startTimer() {
+    Duration flipperDuration = widget.timerDuration;
+    _timer = Timer.periodic(flipperDuration, (timer) {
+      if (_clockCount != widget.limit) {
+        _controller.reset();
+        setState(() => _clockCount++);
+        _controller.forward();
+      } else {
+        setState(() => _clockCount = widget.start);
+      }
+    });
+  }
+
+  Widget _clockTimerWidget() {
+    return Text(
+      _clockCount.toString().padLeft(2, "0"),
+      style: TextStyle(
+        fontSize: 150,
+        color: Theme.of(context).colorScheme.onPrimary
+      ),
+    );
+  }
 }
+
+// sec => 59
+// min => 59
+// hour => 12/24
